@@ -9,7 +9,7 @@ describe("fileList", () => {
     });
     it("urlCreate", () => {
         render(
-            <FileItem file={file}></FileItem>
+            <FileItem file={file}/>
         )
         let item = screen.getByTestId("item")
         expect(item.getAttribute('href')).toBe("test")
@@ -17,7 +17,7 @@ describe("fileList", () => {
     })
     it("selestRevision", () => {
         render(
-            <FileItem file={file}></FileItem>
+            <FileItem file={file}/>
         )
         fireEvent.change(screen.getByTestId("selestRevision"), { target: { value: 1 } })
         let item = screen.getByTestId("item")
@@ -26,7 +26,7 @@ describe("fileList", () => {
     })
     it("revisions", () => {
         render(
-            <FileItem file={file}></FileItem>
+            <FileItem file={file}/>
         )
         let item = screen.getAllByTestId("revisions")
         expect(item.length).toBe(4)

@@ -10,17 +10,16 @@ export const FileItem = ({file}) => {
         options.push(<option key="latest" data-testid="revisions" value="latest">latest</option>)
         return options
     }
-    let revisionUrl = "";
+    let revisionUrl
     if (revision !== "latest") {
         revisionUrl = "?revision=" + revision
     } else {
         revisionUrl = "";
     }
-    return <div key={file.url}>
-        <a data-testid="item" href={file.url + revisionUrl}>{window.location.origin + "/" + file.url + revisionUrl}</a>
-        Revisions:
-        <select data-testid="selestRevision" value={revision} onChange={(event) => setRevision(event.target.value)}>
+    return <tr key={file.url}>
+        <td><a data-testid="item" href={file.url + revisionUrl}>{window.location.origin + "/" + file.url + revisionUrl}</a></td>
+        <td><select data-testid="selestRevision" value={revision} onChange={(event) => setRevision(event.target.value)}>
             {revisions(file.lastRevision)}
-        </select>
-    </div>
+        </select></td>
+    </tr>
 }

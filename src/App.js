@@ -1,8 +1,9 @@
 import React, {useState, useEffect, useCallback} from "react";
-import {UploadFile} from "./Upload";
-import {FilesList} from "./filesList";
-import {CreateUser} from "./createUser";
-import {isResponseOk} from "./IsResponseOk";
+import {UploadFile} from "./components/Upload";
+import {FilesList} from "./components/filesList";
+import {CreateUser} from "./components/createUser";
+import {isResponseOk} from "./utils/IsResponseOk";
+import {apiGet} from "./utils/api";
 
 function App() {
 
@@ -10,22 +11,23 @@ function App() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [files, setFiles] = useState()
+    const [files, setFiles] = useState();
+    const [isRegistration, setIsRegistration] = useState(false);
+    const [currentUser, setCurrentUser] = useState();
 
     const onSession = useCallback((data) => {
         if (data.auth) {
             setIsAuthenticated(true);
             getFile();
             getFileList();
+            setCurrentUser(data.auth)
         } else {
             setIsAuthenticated(false);
         }
     }, [setIsAuthenticated])
 
     const getSession = useCallback(() => {
-        fetch("http://127.0.0.1:8000/users/session/", {
-            headers: {'Authorization': 'Token ' + localStorage.getItem("token")}
-        })
+        apiGet("http://127.0.0.1:8000/users/session/")
             .then((res) => res.json())
             .then(onSession)
             .catch(() => {
@@ -41,9 +43,7 @@ function App() {
         if (window.location.pathname !== '/') {
             const url = window.location.pathname + window.location.search;
             let fileName = "";
-            fetch("http://127.0.0.1:8000/" + url, {
-                headers: {'Authorization': 'Token ' + localStorage.getItem("token")}
-            })
+            apiGet("http://127.0.0.1:8000/" + url)
                 .then(response => {
                     if (response.status === 200) {
                         fileName = response.headers.get('Content-Disposition').substring(21)
@@ -53,24 +53,22 @@ function App() {
                     }
                 })
                 .then(blob => {
-                    var url = window.URL.createObjectURL(blob);
-                    var a = document.createElement('a');
+                    let url = window.URL.createObjectURL(blob);
+                    let a = document.createElement('a');
                     a.href = url;
                     a.download = fileName;
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
                     window.location.href = "/";
+                    setError("");
+                })
+                .catch(() => {
+                    setError("File does not exist.");
                 });
+
+
         }
-    }
-
-    const handlePasswordChange = (event) => {
-        setPassword(event.target.value);
-    }
-
-    const handleUserNameChange = (event) => {
-        setUsername(event.target.value);
     }
 
     const login = (event) => {
@@ -85,7 +83,6 @@ function App() {
             .then(isResponseOk)
             .then((data) => {
                 localStorage.setItem('token', data.token);
-                setIsAuthenticated(true);
                 setUsername("");
                 setPassword("");
                 setError("");
@@ -97,65 +94,75 @@ function App() {
     }
 
     const logout = () => {
-        fetch("http://127.0.0.1:8000/users/logout/", {
-            headers: {'Authorization': 'Token ' + localStorage.getItem("token")}
-        })
+        apiGet("http://127.0.0.1:8000/users/logout/")
             .then(isResponseOk)
             .then(() => {
                 localStorage.setItem("token", "")
                 setIsAuthenticated(false);
+                setCurrentUser()
             })
     };
 
     const getFileList = () => {
-        fetch("http://127.0.0.1:8000/filesList/", {
-            headers: {'Authorization': 'Token ' + localStorage.getItem("token")}
-        })
+        apiGet("http://127.0.0.1:8000/filesList/")
             .then(data => data.json())
             .then((data) => {
                 setFiles(data)
             })
     }
 
-
     if (!isAuthenticated) {
         return (
             <div className="container mt-3">
-                <br/>
-                <p>Filesstore</p>
-                <h2>Registration</h2>
-                <CreateUser></CreateUser>
-                <h2>Login</h2>
-                <form onSubmit={login}>
-                    <div className="form-group">
-                        <label htmlFor="username">Username</label>
-                        <input type="text" className="form-control" id="username" name="username"
-                               value={username} onChange={handleUserNameChange}/>
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="username">Password</label>
-                        <input type="password" className="form-control" id="password" name="password"
-                               value={password} onChange={handlePasswordChange}/>
-                        <div>
-                            {error &&
-                                <small className="text-danger">
-                                    {error}
-                                </small>
-                            }
-                        </div>
-                    </div>
-                    <button type="submit" className="btn btn-primary">Login</button>
-                </form>
+                <h1>Filesstore</h1>
+                {isRegistration ? <><h2>Registration</h2><CreateUser
+                        setIsRegistration={setIsRegistration}/></> :
+                    <><h2>Login</h2>
+                        <form onSubmit={login}>
+                            <div className="form-group">
+                                <label htmlFor="username">Username</label>
+                                <input type="text" className="form-control" id="username" name="username"
+                                       value={username} onChange={(event) => {
+                                    setUsername(event.target.value);
+                                }}/>
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="username">Password</label>
+                                <input type="password" className="form-control" id="password" name="password"
+                                       value={password} onChange={(event) => {
+                                    setPassword(event.target.value);
+                                }}/>
+                                <div>
+                                    {error &&
+                                        <small className="text-danger">
+                                            {error}
+                                        </small>
+                                    }
+                                </div>
+                            </div>
+                            <button type="submit" className="btn btn-primary">Login</button>
+                            <button type="button" className="btn btn-secondary"
+                                    onClick={() => setIsRegistration(true)}>Registration
+                            </button>
+                        </form>
+                    </>}
             </div>
         );
     }
     return (
         <div className="container mt-3">
-            <p>Filesstore</p>
-            <p>You are logged in!</p>
-            <UploadFile onUpload={getFileList}></UploadFile>
-            <FilesList files={files}></FilesList>
-            <button className="btn btn-danger" onClick={logout}>Log out</button>
+            <h1>Filesstore</h1>
+            <p>You are logged as {currentUser}!</p>
+            <UploadFile onUpload={getFileList}/>
+            <div>
+                {error &&
+                    <small className="text-danger">
+                        {error}
+                    </small>
+                }
+            </div>
+            <FilesList files={files}/>
+            <button style={{marginTop: 20}} className="btn btn-danger" onClick={logout}>Log out</button>
         </div>
     )
 
